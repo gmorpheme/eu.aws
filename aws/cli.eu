@@ -1,0 +1,8 @@
+# -*- mode: conf -*-
+
+" These are convenience functions for helping to interpret of process
+the output of AWS the command line tool. "
+
+kv(b): if(b has(:OutputKey),
+         [b.OutputKey sym, b.OutputValue],
+	 [b.ParameterKey sym, b.ParameterValue])

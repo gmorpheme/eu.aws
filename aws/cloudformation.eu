@@ -1,0 +1,286 @@
+# -*- mode: conf -*-
+
+" This is the beginnings of a library of functions aimed at targeting
+cloudformation YAML from eucalypt. It's obviously highly
+experimental..."
+
+` "Provide an outline block for a CloudFormation template"
+base-template(desc): {
+  AWSTemplateFormatVersion: "2010-09-09"
+  Description: desc
+  Parameters: {}
+  Conditions: {}
+  Resources: {}
+  Outputs: {}
+}
+
+` "Provide an outline parameter block"
+param(desc, type): {
+  Description: desc
+  Type: type
+}
+
+` { doc: "AWS entity types" export: :suppress }
+type: {
+  auto-scaling-group: "AWS::AutoScaling::AutoScalingGroup"
+  eks-cluster: "AWS::EKS::Cluster"
+  hosted-zone: "AWS::Route53::HostedZone"
+  igw: "AWS::EC2::InternetGateway"
+  image: "AWS::EC2::Image"
+  image-id: image id
+  instance-profile: "AWS::IAM::InstanceProfile"
+  key: "AWS::EC2::KeyPair::KeyName"
+  launch-config: "AWS::AutoScaling::LaunchConfiguration"
+  number: "Number"
+  role: "AWS::IAM::Role"
+  route-table-association: "AWS::EC2::SubnetRouteTableAssociation"
+  route-table: "AWS::EC2::RouteTable"
+  route: "AWS::EC2::Route"
+  sg-egress: "AWS::EC2::SecurityGroupEgress"
+  sg-id: sg id
+  sg-ingress: "AWS::EC2::SecurityGroupIngress"
+	sg: "AWS::EC2::SecurityGroup"
+  spot-fleet: "AWS::EC2::SpotFleet"
+  string: "String"
+  subnet: "AWS::EC2::Subnet"
+  subnet-id: subnet id
+  vpc-igw: "AWS::EC2::VPCGatewayAttachment"
+  vpc: "AWS::EC2::VPC"
+  vpc-id: vpc id
+
+  lambda: "AWS::Lambda::Function"
+
+  gateway: {
+    api: "AWS::ApiGateway::RestApi"
+  }
+
+  id: "{}::Id"
+  list: "List<{}>"
+}
+
+
+` "CloudFormation pseudo parameters"
+aws: {
+  (* x): "AWS::{x}"
+
+  account-id: *"AccountId"
+  notification-arns: *"NotificationARNs"
+  no-value: *"NoValue"
+  partition: *"Partition"
+  region: *"Region"
+  stack-id: *"StackId"
+  stack-name: *"StackName"
+  url-suffix: *"URLSuffix"
+}
+
+` "All available instance-types"
+instance-types:
+  [ "t2.small"
+  , "t2.medium"
+  , "t2.large"
+  , "t2.xlarge"
+  , "t2.2xlarge"
+  , "m3.medium"
+  , "m3.large"
+  , "m3.xlarge"
+  , "m3.2xlarge"
+  , "m4.large"
+  , "m4.xlarge"
+  , "m4.2xlarge"
+  , "m4.4xlarge"
+  , "m4.10xlarge"
+  , "m5.large"
+  , "m5.xlarge"
+  , "m5.2xlarge"
+  , "m5.4xlarge"
+  , "m5.12xlarge"
+  , "m5.24xlarge"
+  , "c4.large"
+  , "c4.xlarge"
+  , "c4.2xlarge"
+  , "c4.4xlarge"
+  , "c4.8xlarge"
+  , "c5.large"
+  , "c5.xlarge"
+  , "c5.2xlarge"
+  , "c5.4xlarge"
+  , "c5.9xlarge"
+  , "c5.18xlarge"
+  , "i3.large"
+  , "i3.xlarge"
+  , "i3.2xlarge"
+  , "i3.4xlarge"
+  , "i3.8xlarge"
+  , "i3.16xlarge"
+  , "r3.xlarge"
+  , "r3.2xlarge"
+  , "r3.4xlarge"
+  , "r3.8xlarge"
+  , "r4.large"
+  , "r4.xlarge"
+  , "r4.2xlarge"
+  , "r4.4xlarge"
+  , "r4.8xlarge"
+  , "r4.16xlarge"
+  , "x1.16xlarge"
+  , "x1.32xlarge"
+  , "p2.xlarge"
+  , "p2.8xlarge"
+  , "p2.16xlarge"
+  , "p3.2xlarge"
+  , "p3.8xlarge"
+  , "p3.16xlarge"
+  ]
+
+` { doc: "Basic VPC block for customisation" export: :suppress }
+vpc: {
+  Type: type.vpc
+}
+
+` { doc: "Basic subnet for customisation" export: :suppress }
+subnet(vpc, az, cidr): {
+  Type: type.subnet
+  Properties: {
+    VpcId: fn.ref(vpc)
+    AvailabilityZone: az
+    CidrBlock: cidr
+  }
+}
+
+` { doc: "Basic IGW for customisation" export: :suppress }
+igw: {
+  Type: type.igw
+}
+
+igw-attachment: {
+  Type: type.vpc-igw
+}
+
+route-table: {
+  Type: type.route-table
+}
+
+route: {
+  Type: type.route
+}
+
+route-table-association: {
+  Type: type.route-table-association
+}
+
+sg(desc): {
+  Type: type.sg
+  Properties: {
+    GroupDescription: desc
+  }
+}
+
+sg-ingress(sg, props): {
+  Type: type.sg-ingress
+  DependsOn: sg
+  Properties: {
+    GroupId: fn.ref(sg)
+  } << props
+}
+
+sg-egress(sg, props): {
+  Type: type.sg-egress
+  DependsOn: sg
+  Properties: {
+    GroupId: fn.ref(sg)
+  } << props
+}
+
+asg(props): {
+  Type: type.auto-scaling-group
+  Properties: {
+  } << props
+}
+
+launch-config(props): {
+  Type: type.launch-config
+  Properties: {
+  } << props
+}
+
+spot-fleet(fleet-config): {
+  Type: type.spot-fleet
+  Properties: {
+    SpotFleetRequestConfigData: fleet-config
+  }
+}
+
+eks-cluster(name) : {
+  Type: type.eks-cluster
+  Properties: {
+    Name: name
+  }
+}
+
+spot-fleet-role: {
+  Type: type.role
+  Properties: {
+    AssumeRolePolicyDocument: {
+      Version: "2012-10-17"
+	Statement: { Effect: "Allow" Principal: { Service: "spotfleet.amazonaws.com" } Action: "sts:AssumeRole" }
+    }
+    ManagedPolicyArns: ["arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetRole"]
+    Path: "/"
+  }
+}
+
+instance-role(policy-arns): {
+  Type: type.role
+  Properties: {
+    AssumeRolePolicyDocument: {
+      Version: "2012-10-17"
+	Statement: { Effect: "Allow" Principal: { Service: "ec2.amazonaws.com" } Action: "sts:AssumeRole" }
+    }
+    Path: "/"
+    ManagedPolicyArns: policy-arns
+  }
+}
+
+
+as-tag(item): { Key: item key Value: item value }
+to-tags(b): b elements map(as-tag)
+
+` { doc: "Merge tags into a resource"}
+tagged(tags, b): b merge-at([:Properties, :Tags], tags)
+
+` "All the Fn:: incantations we might need"
+fn: {
+  ref(label): {
+    Ref: label
+  }
+
+  ref(label): label // { export: { yaml: { tag: "Ref" } } }
+  ref(label): label // yaml.tag("Ref")
+
+
+  ` "CloudFormation fn to join with char"
+  join(char, vals): {
+    'Fn::Join': [char, vals]
+  }
+
+  ` "CloudFormation fn to join without intervening char"
+  cat(vals): {
+    'Fn::Join': ["", vals]
+  }
+
+  sub(text): {
+    'Fn::Sub': text
+  }
+
+  b64(content): {
+    'Fn::Base64': content
+  }
+
+  sub(template): {
+    'Fn::Sub': template
+  }
+
+  att(r, key): {
+    'Fn::GetAtt': [r, key]
+  }
+}
