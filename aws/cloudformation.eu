@@ -26,10 +26,11 @@ type: {
   eks-cluster: "AWS::EKS::Cluster"
   hosted-zone: "AWS::Route53::HostedZone"
   igw: "AWS::EC2::InternetGateway"
-  image: "AWS::EC2::Image"
   image-id: image id
+  image: "AWS::EC2::Image"
   instance-profile: "AWS::IAM::InstanceProfile"
   key: "AWS::EC2::KeyPair::KeyName"
+  lambda: "AWS::Lambda::Function"
   launch-config: "AWS::AutoScaling::LaunchConfiguration"
   number: "Number"
   role: "AWS::IAM::Role"
@@ -39,25 +40,27 @@ type: {
   sg-egress: "AWS::EC2::SecurityGroupEgress"
   sg-id: sg id
   sg-ingress: "AWS::EC2::SecurityGroupIngress"
-	sg: "AWS::EC2::SecurityGroup"
+  sg: "AWS::EC2::SecurityGroup"
   spot-fleet: "AWS::EC2::SpotFleet"
   string: "String"
-  subnet: "AWS::EC2::Subnet"
   subnet-id: subnet id
+  subnet: "AWS::EC2::Subnet"
+  vpc-id: vpc id
   vpc-igw: "AWS::EC2::VPCGatewayAttachment"
   vpc: "AWS::EC2::VPC"
-  vpc-id: vpc id
-
-  lambda: "AWS::Lambda::Function"
 
   gateway: {
     api: "AWS::ApiGateway::RestApi"
   }
 
+  serverless: {
+    fn: "AWS::Serverless::Function"
+    api: "AWS::Serverless::Api"
+  }
+
   id: "{}::Id"
   list: "List<{}>"
 }
-
 
 ` "CloudFormation pseudo parameters"
 aws: {
@@ -150,14 +153,24 @@ subnet(vpc, az, cidr): {
 ` { doc: "Basic IGW for customisation" export: :suppress }
 igw: {
   Type: type.igw
+  Properties: {}
 }
 
-igw-attachment: {
+` { doc: "Attachment of IGW to VPC" export: :suppress }
+igw-attachment(igw, vpc): {
   Type: type.vpc-igw
+  Properties: {
+    InternetGatewayId: igw fn.ref
+    VpcId: vpc fn.ref
+  }
 }
 
-route-table: {
+route-table(vpc): {
   Type: type.route-table
+  DependsOn: vpc
+  Properties: {
+    VpcId: vpc fn.ref
+  }
 }
 
 route: {
@@ -168,9 +181,10 @@ route-table-association: {
   Type: type.route-table-association
 }
 
-sg(desc): {
+sg(vpc, desc): {
   Type: type.sg
   Properties: {
+    VpcId: fn.ref(vpc)
     GroupDescription: desc
   }
 }
@@ -229,6 +243,11 @@ spot-fleet-role: {
   }
 }
 
+instance-profile(role): {
+  Type: type.instance-profile
+  Properties: { Path: "/" Roles: [fn.ref(role)]}
+}
+
 instance-role(policy-arns): {
   Type: type.role
   Properties: {
@@ -250,37 +269,10 @@ tagged(tags, b): b merge-at([:Properties, :Tags], tags)
 
 ` "All the Fn:: incantations we might need"
 fn: {
-  ref(label): {
-    Ref: label
-  }
-
-  ref(label): label // { export: { yaml: { tag: "Ref" } } }
-  ref(label): label // yaml.tag("Ref")
-
-
-  ` "CloudFormation fn to join with char"
-  join(char, vals): {
-    'Fn::Join': [char, vals]
-  }
-
-  ` "CloudFormation fn to join without intervening char"
-  cat(vals): {
-    'Fn::Join': ["", vals]
-  }
-
-  sub(text): {
-    'Fn::Sub': text
-  }
-
-  b64(content): {
-    'Fn::Base64': content
-  }
-
-  sub(template): {
-    'Fn::Sub': template
-  }
-
-  att(r, key): {
-    'Fn::GetAtt': [r, key]
-  }
+  ref(label): label // { tag: "!Ref" }
+  sub(text): text // { tag: "!Fn::Sub" }
+  b64(content): content // { tag: "!Fn::Base64" }
+  join(char, vals): [char, vals] // { tag: "!Fn::Join" }
+  cat(vals): join("")
+  att(r, key): [r, key] // { tag: "!Fn::GetAtt" }
 }
