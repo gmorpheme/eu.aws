@@ -270,9 +270,9 @@ tagged(tags, b): b merge-at([:Properties, :Tags], tags)
 ` "All the Fn:: incantations we might need"
 fn: {
   ref(label): label // { tag: "!Ref" }
-  sub(text): text // { tag: "!Fn::Sub" }
-  b64(content): content // { tag: "!Fn::Base64" }
-  join(char, vals): [char, vals] // { tag: "!Fn::Join" }
+  sub(text): text // { tag: "!Sub" }
+  b64(content): content // { tag: "!Base64" }
+  join(char, vals): [char, vals] // { tag: "!Join" }
   cat(vals): join("")
-  att(r, key): [r, key] // { tag: "!Fn::GetAtt" }
+  att(r, key): [r, key] // { tag: "!GetAtt" }
 }
